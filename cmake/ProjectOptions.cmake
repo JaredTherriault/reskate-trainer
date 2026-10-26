@@ -50,6 +50,12 @@ function(dingosdk_configure_target target)
     endif()
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /WX /MP /permissive- /EHsc)
+        # clang-cl (the xwin cross build) warns where MSVC does not: keep its warnings as warnings.
+        # /EHa: without asynchronous exceptions clang's __try ignores access violations raised by
+        # the guarded code itself (memory::peek and the other SEH guards), and the game crashes.
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+            target_compile_options(${target} PRIVATE /WX- /EHa /clang:-ftemplate-depth=4096)
+        endif()
     else()
         target_compile_options(${target} PRIVATE -Wall -Wextra -Wno-missing-field-initializers -Wno-unused-function -Wno-array-bounds)
     endif()

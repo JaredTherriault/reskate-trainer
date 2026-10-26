@@ -957,7 +957,8 @@ void load_skate_fonts(SkateMenu& menu) {
     static const ImWchar ranges[]{0x0020, 0x024F, 0x0400, 0x052F, 0x2000, 0x206F, 0x20A0, 0x20CF, 0x2190, 0x21FF, 0};
     std::array<char, MAX_PATH> windows{};
     const auto length = GetWindowsDirectoryA(windows.data(), static_cast<UINT>(windows.size()));
-    const auto font = [&](const wchar_t* resource, const char* filename, float size, const ImWchar* glyphs = ranges) -> ImFont* {
+    const auto font = [&](const wchar_t* resource, const char* filename, float size, const ImWchar* glyphs = nullptr) -> ImFont* {
+        if (!glyphs) glyphs = ranges;
         if (resource)
             if (auto* loaded = embedded_font(resource, size, glyphs)) return loaded;
         if (length && length < windows.size()) {

@@ -274,6 +274,29 @@ target_link_libraries(dingosdk_runtime PRIVATE dingosdk_custom_level_manifest)
 
 set_target_properties(dingosdk_runtime PROPERTIES OUTPUT_NAME "ReSkate" PREFIX "")
 
+# xwin keeps most C++/WinRT headers lower case; a case-correct overlay of links (build/winrt-case)
+# lets the Linux cross build find them. Made once, from the impl headers' names.
+set(dingosdk_winrt "${XWIN_ROOT}/sdk/include/cppwinrt/winrt")
+set(dingosdk_winrt_case "${CMAKE_CURRENT_BINARY_DIR}/winrt-case/winrt")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND XWIN_ROOT AND EXISTS "${dingosdk_winrt}/impl"
+   AND NOT EXISTS "${dingosdk_winrt_case}/base.h")
+    file(MAKE_DIRECTORY "${dingosdk_winrt_case}")
+    file(GLOB dingosdk_winrt_impl RELATIVE "${dingosdk_winrt}/impl" "${dingosdk_winrt}/impl/*.0.h")
+    foreach(header IN LISTS dingosdk_winrt_impl)
+        string(REGEX REPLACE "\\.0\\.h$" "" name "${header}")
+        string(TOLOWER "${name}" lower)
+        if(EXISTS "${dingosdk_winrt}/${lower}.h" AND NOT EXISTS "${dingosdk_winrt_case}/${name}.h")
+            file(CREATE_LINK "${dingosdk_winrt}/${lower}.h" "${dingosdk_winrt_case}/${name}.h" SYMBOLIC)
+        endif()
+    endforeach()
+    file(CREATE_LINK "${dingosdk_winrt}/impl" "${dingosdk_winrt_case}/impl" SYMBOLIC)
+    file(CREATE_LINK "${dingosdk_winrt}/base.h" "${dingosdk_winrt_case}/base.h" SYMBOLIC)
+endif()
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND EXISTS "${CMAKE_CURRENT_BINARY_DIR}/winrt-case")
+    set_source_files_properties(Extension/Music/external_player.cpp PROPERTIES
+        COMPILE_OPTIONS "/imsvc${CMAKE_CURRENT_BINARY_DIR}/winrt-case")
+endif()
+
 # The game as a Spotify Connect device (Extension/Music/spotify_device.h): SpotifyHelper/, a
 # Rust library on librespot, built by cargo and linked into ReSkate.dll. Without cargo the DLL
 # is built without it, and Spotify is played through its own app. (Not in Debug builds: the
@@ -340,8 +363,8 @@ if(EXISTS "${dingosdk_emotes}/emotes.json" AND EXISTS "${dingosdk_emotes}/emotes
     file(TO_NATIVE_PATH "${dingosdk_emotes}" dingosdk_emotes_native)
     string(REPLACE "\\" "\\\\" dingosdk_emotes_native "${dingosdk_emotes_native}")
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/generated/emotes.rc"
-        "EMOTES_JSON RCDATA \"${dingosdk_emotes_native}\\\\emotes.json\"\n"
-        "EMOTES_PNG RCDATA \"${dingosdk_emotes_native}\\\\emotes.png\"\n")
+        "EMOTES_JSON RCDATA \"${dingosdk_emotes_native}/emotes.json\"\n"
+        "EMOTES_PNG RCDATA \"${dingosdk_emotes_native}/emotes.png\"\n")
     target_sources(dingosdk_runtime PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/emotes.rc")
 endif()
 # Game content ReSkate carries itself (Engine/Vfs/builtin_packs.h), one zip each in assets/builtin:
